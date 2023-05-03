@@ -5,9 +5,9 @@
  */
 #include <autoconf.h>
 #include <rumprun/init_data.h>
-#include <platsupport/plat/pit.h>
+//#include <platsupport/plat/pit.h>
 #include <platsupport/io.h>
-#include <platsupport/arch/tsc.h>
+#include <platsupport/arch/generic_timer.h>
 #include <sel4platsupport/platsupport.h>
 #include <sel4platsupport/arch/io.h>
 #include <sel4utils/benchmark_track.h>

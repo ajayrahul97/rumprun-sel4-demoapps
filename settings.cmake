@@ -22,16 +22,17 @@ include(${project_dir}/tools/seL4/cmake-tool/helpers/application_settings.cmake)
 # ../init-build.sh -DPLATFORM=x86_64 -DSIMULATION=TRUE -DAPP=Hello
 set(SIMULATION OFF CACHE BOOL "Include only simulation compatible tests")
 set(RELEASE OFF CACHE BOOL "Performance optimized build")
-set(PLATFORM "x86_64" CACHE STRING "Platform to test")
-set(supported_platforms x86_64 ia32)
+set(PLATFORM "aarch64" CACHE STRING "Platform to test")
+set(supported_platforms x86_64 ia32 aarch64)
 set_property(CACHE PLATFORM PROPERTY STRINGS ${supported_platforms})
 set(APP "hello" CACHE STRING "Application to build")
 
+
 # Determine the platform/architecture
 if(${PLATFORM} IN_LIST supported_platforms)
-    set(KernelArch x86 CACHE STRING "" FORCE)
+    set(KernelArch aarch64 CACHE STRING "" FORCE)
     set(KernelSel4Arch ${PLATFORM} CACHE STRING "" FORCE)
-    set(KernelPlatform pc99 CACHE STRING "" FORCE)
+    set(KernelPlatform qemu-arm-virt CACHE STRING "" FORCE)
 else()
     message(FATAL_ERROR "Unknown PLATFORM. Initial configuration may not work")
 endif()
@@ -41,6 +42,8 @@ include(${project_dir}/kernel/configs/seL4Config.cmake)
 if(SIMULATION)
     ApplyCommonSimulationSettings(${KernelSel4Arch})
 endif()
+
+message("KernelArch is being set to ${KernelArch} ${KernelPlatform}")
 
 ApplyCommonReleaseVerificationSettings(${RELEASE} OFF)
 
