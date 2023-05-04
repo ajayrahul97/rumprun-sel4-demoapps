@@ -55,3 +55,5 @@ add_subdirectory(roottask)
 get_property(rumprun_apps GLOBAL PROPERTY AvailableRumprunApps)
 
 set_property(CACHE APP PROPERTY STRINGS ${rumprun_apps})
+
+message("KernelArch = ${KernelArch} , ${KernelPlatform}, ${KernelSel4Arch} ")

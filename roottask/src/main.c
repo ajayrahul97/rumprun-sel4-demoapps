@@ -19,7 +19,7 @@
 #include <sel4utils/stack.h>
 #include <sel4utils/util.h>
 #include <sel4utils/time_server/client.h>
-#include <sel4utils/arch/tsc.h>
+//#include <sel4utils/arch/tsc.h>
 #include <serial_server/parent.h>
 #include <vka/object.h>
 #include <platsupport/io.h>
@@ -72,6 +72,14 @@ extern reservation_t muslc_brk_reservation;
 extern void *muslc_brk_reservation_start;
 extern char _cpio_archive[];
 extern char _cpio_archive_end[];
+
+
+
+uint32_t aarch64_get_tsc_freq(void) {
+    uint64_t cntfrq;
+    asm volatile("mrs %0, cntfrq_el0" : "=r" (cntfrq));
+    return (uint32_t)(cntfrq / MHZ);
+}
 
 
 static inline rump_process_t *process_from_id(int id)
@@ -343,13 +351,14 @@ void launch_process(const char *bin_name, const char *cmdline, int id)
                                                                 process->timer_signal.cptr);
     ZF_LOGF_IF(process->init->timer_signal == 0, "copy cap failed");
 
-    arch_copy_IOPort_cap(process->init, &env, &process->process);
+   //TODO : right not IO is not need, check this error later
+   // arch_copy_IOPort_cap(process->init, &env, &process->process);
 
     /* setup data about untypeds */
     alloc_untypeds(process);
     alloc_devices(process);
     copy_untypeds_to_process(process);
-    process->init->tsc_freq = x86_get_tsc_freq_from_simple(&env.simple);
+    process->init->tsc_freq = aarch64_get_tsc_freq();
 
     /* copy the rpc endpoint - we wait on the endpoint for a message
      * or a fault to see when the process finishes */
@@ -495,7 +504,8 @@ static int flush_stdio_buffers(void)
 
 /* Boot Rumprun process. */
 int run_rr(void)
-{
+{  
+    ZF_LOGI("HELLO REACHED HERE START");
     struct cpio_info info2;
     unsigned long cpio_len = _cpio_archive_end - _cpio_archive;
     cpio_info(_cpio_archive, cpio_len, &info2);
@@ -533,7 +543,7 @@ int run_rr(void)
             reply = true;
             rump_process_t *rump_process = process_from_id(badge);
             if (label == TIMER_LABEL) {
-                info = handle_timer_rpc(rump_process, badge, info);
+               info = handle_timer_rpc(rump_process, badge, info);
             } else if (label != seL4_Fault_NullFault) {
                 /* it's a fault */
                 sel4utils_print_fault_message(info, rump_process->bin_name);
@@ -614,7 +624,7 @@ void *main_continued(void *arg UNUSED)
     int res_buf = seL4_BenchmarkSetLogBuffer(buffer_cap);
     ZF_LOGF_IFERR(res_buf, "Could not set log buffer");
 #endif //CONFIG_BENCHMARK_USE_KERNEL_LOG_BUFFER
-
+    ZF_LOGI("Rcd main continued 1\n");
     int error = vka_alloc_endpoint(&env.vka, &env.ep);
     ZF_LOGF_IF(error, "Failed to allocate endpoint");
 
@@ -624,32 +634,40 @@ void *main_continued(void *arg UNUSED)
         ZF_LOGF_IF(error, "Failed to allocate reply object");
     }
 
+    ZF_LOGI("Rcd main continued 2\n");
     /* start the serial server thread */
     error = serial_server_parent_spawn_thread(&env.simple, &env.vka, &env.vspace, seL4_MaxPrio - 1);
-    ZF_LOGF_IF(error, "Failed to spawn serial server thread");
+    ZF_LOGF_IF(error, "Failed to spawn serial server thread"); 
+
+    ZF_LOGI("Rcd main continued 3\n");
 
     /* get the caps we need to set up a timer and serial interrupts */
     error = vka_cspace_alloc_path(&env.vka, &env.serial_irq);
     ZF_LOGF_IF(error, "Failed to allocate serial IRQ slot.");
 
+    ZF_LOGI("Rcd main continued 3.1\n");
+
     error = simple_get_IRQ_handler(&env.simple, DEFAULT_SERIAL_INTERRUPT,
                                    env.serial_irq);
     ZF_LOGF_IF(error, "Failed to get IRQ cap for default COM device. IRQ is %d.",
                DEFAULT_SERIAL_INTERRUPT);
-
+        ZF_LOGI("Rcd main continued 3.2\n");
     error = ltimer_default_init(&env.ltimer, env.ops, NULL, NULL);
     ZF_LOGF_IF(error, "Failed to init ltimer");
-
+    ZF_LOGI("Rcd main continued 3.3\n");
     error = seL4_TCB_BindNotification(simple_get_tcb(&env.simple), env.irq_ntfn.cptr);
     ZF_LOGF_IF(error, "Failed to bind timer notification and endpoint\n");
-
+    ZF_LOGI("Rcd main continued 3.4\n");
     error = tm_init(&env.time_manager, &env.ltimer, &env.ops, N_RUMP_PROCESSES);
     ZF_LOGF_IF(error, "Failed to init time manager");
-
+    ZF_LOGI("Rcd main continued 3.5\n");
     seL4_CPtr auth = simple_get_tcb(&env.simple);
+        ZF_LOGI("Rcd main continued 3.6\n");
     error = seL4_TCB_SetPriority(simple_get_tcb(&env.simple), auth, seL4_MaxPrio);
     ZF_LOGF_IFERR(error, "seL4_TCB_SetPriority thread failed");
 
+    ZF_LOGI("Rcd main continued 4\n");
+    
     /* badge the irq_ntfn for serial */
     cspacepath_t src, dest;
     error = vka_cspace_alloc_path(&env.vka, &dest);
@@ -659,10 +677,14 @@ void *main_continued(void *arg UNUSED)
     error = vka_cnode_mint(&dest, &src, seL4_AllRights, SERIAL_BADGE);
     ZF_LOGF_IFERR(error, "Failed to mint cap");
 
+    ZF_LOGI("Rcd main continued 5\n");
+
     /* Bind serial input to badged ntfn */
     error = seL4_IRQHandler_SetNotification(env.serial_irq.capPtr,
                                             dest.capPtr);
     ZF_LOGF_IFERR(error, "Failed to bind serial irq");
+
+    ZF_LOGI("Rcd main continued 6\n");
 
     /* Create idle thread */
     error = create_thread_handler(count_idle, 0, 100);
@@ -674,9 +696,11 @@ void *main_continued(void *arg UNUSED)
         ZF_LOGF_IF(error, "Could not create hog thread thread");
     }
 
+    ZF_LOGI("Rcd main continued 7\n");
     /* now set up and run rumprun */
     run_rr();
 
+    ZF_LOGI("Rcd main continued 8\n");
     return NULL;
 }
 
@@ -698,16 +722,19 @@ static void CONSTRUCTOR(MUSLCSYS_WITH_VSYSCALL_PRIORITY) init(void)
 /* entry point of root task */
 int main(void)
 {
-    /* enable serial driver */
+    /* enable serial driver */ 
+    ZF_LOGI("REACHED POINT 1 main");
     platsupport_serial_setup_io_ops(&env.ops);
+    ZF_LOGI("REACHED POINT 2 main");
 
     /* switch to a bigger, safer stack with a guard page
      * before starting Rumprun, resume on main_continued() */
     ZF_LOGI("Switching to a safer, bigger stack... ");
     fflush(stdout);
     void *res;
+    ZF_LOGI("REACHED POINT 3 main ");
     sel4utils_run_on_stack(&env.vspace, main_continued, NULL, &res);
-
+    ZF_LOGI("REACHED POINT main 4");
     return 0;
 
 }
