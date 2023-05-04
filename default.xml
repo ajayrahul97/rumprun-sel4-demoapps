@@ -15,7 +15,7 @@
   <project name="musllibc" path="projects/musllibc" revision="8043907076371f74da51c57b0ef5ae79ea975ae0" upstream="quickfix_long_double" dest-branch="sel4"/>
   <project name="rumprun" path="projects/rumprun" revision="27cc6c4f9530b581c2c46732a1bf7b8fad4bec68" upstream="master" dest-branch="master"/>
   <project name="rumprun-packages" path="projects/rumprun-packages" revision="b6a88a4bab2a98fb419bb73836a6b50e26a9a7ae" upstream="master" dest-branch="master"/>
-  <project name="rumprun-sel4-demoapps" path="projects/rumprun-sel4-demoapps" revision="2af4d1624d50f0d961cbe8b8e3be43b3d89dc023" upstream="master" dest-branch="master">
+  <project name="rumprun-sel4-demoapps" path="projects/rumprun-sel4-demoapps" revision="e833c04cc2bbf53d3e14fb0526d43819413e10fc" upstream="master" dest-branch="master">
     <linkfile src="README.md" dest="README.md"/>
     <linkfile src="settings.cmake" dest="settings.cmake"/>
   </project>
