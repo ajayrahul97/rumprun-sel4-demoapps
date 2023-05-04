@@ -53,11 +53,11 @@ editing the .config file directly.
 
 # Installation steps
 ```
-repo init -u https://github.com/seL4/rumprun-sel4-demoapps
+repo init -u https://github.com/ajayrahul97/rumprun-sel4-demoapps
 repo sync
 (cd projects/rumprun && ./init-sources.sh)
 mkdir build-hello && cd build-hello
-../init-build.sh -DPLATFORM=x86_64 -DSIMULATION=TRUE -DAPP=hello
+../init-build.sh -DPLATFORM=aarch64 -DSIMULATION=TRUE  -DCROSS_COMPILER_PREFIX=aarch64-linux-gnu-
 ninja
 ```
 
